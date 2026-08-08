@@ -83,10 +83,12 @@ async function runDiagnosis(file) {
   const formData = new FormData();
   formData.append("file", file); // your FastAPI param is named "file"
 
-  const res = await fetch("http://localhost:9090/predict", {
+  const API_URL = import.meta.env.VITE_API_URL;
+
+const res = await fetch(`${API_URL}/predict`, {
     method: "POST",
-    body: formData,
-  });
+    body: formData
+});
 
   if (!res.ok) {
     throw new Error(`Prediction failed: ${res.status} ${res.statusText}`);
