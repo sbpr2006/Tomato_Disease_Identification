@@ -79,20 +79,27 @@ const SEVERITY_COPY = {
   disease: "Treatment recommended",
 };
 
-function runDiagnosis(file) {
-  // TODO: replace this mock with a real model call, e.g.
-  //
-  // const formData = new FormData();
-  // formData.append("image", file);
-  // const res = await fetch("/api/predict", { method: "POST", body: formData });
-  // const { label, confidence } = await res.json(); // label === one of CLASS_NAMES
-  // return { ...CLASS_INFO[label], confidence: Math.round(confidence * 100) };
-  //
-  return new Promise((resolve) => {
-    const pickedClass = CLASS_NAMES[Math.floor(Math.random() * CLASS_NAMES.length)];
-    const confidence = Math.round(62 + Math.random() * 36);
-    setTimeout(() => resolve({ ...CLASS_INFO[pickedClass], confidence }), 1400);
+async function runDiagnosis(file) {
+  const formData = new FormData();
+  formData.append("file", file); // your FastAPI param is named "file"
+
+  const res = await fetch("http://localhost:9090/predict", {
+    method: "POST",
+    body: formData,
   });
+
+  if (!res.ok) {
+    throw new Error(`Prediction failed: ${res.status} ${res.statusText}`);
+  }
+
+  const { prediction, confidence } = await res.json(); // "prediction", not "label"
+
+  const info = CLASS_INFO[prediction];
+  if (!info) {
+    throw new Error(`Unknown class returned by model: "${prediction}"`);
+  }
+
+  return { ...info, confidence: Math.round(confidence * 100) };
 }
 
 // ---------------------------------------------------------------------------
@@ -159,17 +166,22 @@ export default function App() {
   const [result, setResult] = useState(null);
   const inputRef = useRef(null);
 
-  const acceptFile = useCallback((selected) => {
-    if (!selected || !selected.type.startsWith("image/")) return;
-    setFile(selected);
-    setPreviewUrl(URL.createObjectURL(selected));
-    setResult(null);
-    setStatus("loading");
-    runDiagnosis(selected).then((r) => {
+const acceptFile = useCallback((selected) => {
+  if (!selected || !selected.type.startsWith("image/")) return;
+  setFile(selected);
+  setPreviewUrl(URL.createObjectURL(selected));
+  setResult(null);
+  setStatus("loading");
+  runDiagnosis(selected)
+    .then((r) => {
       setResult(r);
       setStatus("done");
+    })
+    .catch((err) => {
+      console.error("Diagnosis error:", err);
+      setStatus("error");
     });
-  }, []);
+}, []);
 
   const handleDrop = useCallback(
     (e) => {

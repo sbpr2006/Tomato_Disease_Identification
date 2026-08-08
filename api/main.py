@@ -27,11 +27,11 @@ class_names =['Tomato_Bacterial_spot',
                 'Tomato_healthy']
 
 @app.post("/predict")
-async def predict(file:UploadFile=File(...)):
-    fl=await file.read()
+async def predict(file: UploadFile = File(...)):
+    fl = await file.read()
 
-    img=np.array(Image.open(io.BytesIO(fl)))
-    batch_images=np.expand_dims(img,axis=0)
+    img = np.array(Image.open(io.BytesIO(fl)))
+    batch_images = np.expand_dims(img, axis=0)
 
     response= requests.post(endpoint,json={"instances":batch_images.tolist()})
     if response.status_code!=200:
